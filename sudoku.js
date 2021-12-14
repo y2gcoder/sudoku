@@ -114,23 +114,23 @@ class Sudoku {
     return result;
   }
 
-  safeToPlace(board, emptyCell, num) {
-    return this.rowSafe(board, emptyCell, num) &&
-      this.colSafe(board, emptyCell, num) &&
-      this.boxSafe(board, emptyCell, num)
+  safeToPlace(board, cell, num) {
+    return this.rowSafe(board, cell, num) &&
+      this.colSafe(board, cell, num) &&
+      this.boxSafe(board, cell, num)
   }
 
-  rowSafe(board, emptyCell, num) {
-    return board[emptyCell.rowIndex].indexOf(num) == -1
+  rowSafe(board, cell, num) {
+    return board[cell.rowIndex].indexOf(num) == -1
   }
 
-  colSafe(board, emptyCell, num) {
-    return !board.some(row => row[emptyCell.colIndex] == num)
+  colSafe(board, cell, num) {
+    return !board.some(row => row[cell.colIndex] == num)
   }
 
-  boxSafe(board, emptyCell, num) {
-    const boxStartRow = emptyCell.rowIndex - (emptyCell.rowIndex % 3);
-    const boxStartCol = emptyCell.colIndex - (emptyCell.colIndex % 3);
+  boxSafe(board, cell, num) {
+    const boxStartRow = cell.rowIndex - (cell.rowIndex % 3);
+    const boxStartCol = cell.colIndex - (cell.colIndex % 3);
 
     let result = true;
 
