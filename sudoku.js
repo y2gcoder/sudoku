@@ -1,10 +1,15 @@
 class Sudoku {
 
   constructor(holes) {
-    this._solvedBoard = this.createSolvedBoard();
-    const [removedValues, startingBoard] = this.pokeHoles(this.solvedBoard.map(row => row.slice()), holes);
-    this._startingBoard = startingBoard;
-    this._removeValues = removedValues;
+    try {
+      this._solvedBoard = this.createSolvedBoard();
+      const [removedValues, startingBoard] = this.pokeHoles(this.solvedBoard.map(row => row.slice()), holes);
+      this._startingBoard = startingBoard;
+      this._removeValues = removedValues;
+    } catch (error) {
+      console.error(error);
+      return new Sudoku(holes);
+    }
   }
 
   get solvedBoard() {
@@ -32,14 +37,9 @@ class Sudoku {
   }
 
   createSolvedBoard() {
-    try {
-      const solvedBoard = this.createEmptyBoard();
-      this.fillBoard(solvedBoard);
-      return solvedBoard;
-    } catch (error) {
-      console.error(error);
-      return this.createSolvedBoard();
-    }
+    const solvedBoard = this.createEmptyBoard();
+    this.fillBoard(solvedBoard);
+    return solvedBoard;
 
   }
 
