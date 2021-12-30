@@ -7,8 +7,8 @@ class SudokuClient {
   constructor() { }
 
   createGame(holes) {
-    this._solvedBoard = this.createSolvedBoard();
     this._holes = holes;
+    this._solvedBoard = this.createSolvedBoard();
     this.createStartingBoard(this.solvedBoard, holes);
   }
 
@@ -48,6 +48,7 @@ class SudokuClient {
 
       const dummyBoard = board.map(v => v.slice());
       dummyBoard[randomRowIndex][randomColIndex] = 0;
+
       const candidateBoard = this.fillBoard(dummyBoard.map(v => v.slice()));
       if (!this.includesInSolutions(solutions, candidateBoard)) {
         solutions.push(solutions);
@@ -88,11 +89,13 @@ class SudokuClient {
       }
       const candidatesForCell = this.shuffledSudokuNumbers().filter((candidateNumber) => this.allPass(result, emptyCell, candidateNumber));
       if (candidatesForCell.length === 0) {
-        // 다시 만들까? 
-        result = baseBoard.map(v => v.slice());
+        // result = baseBoard.map(v => v.slice());
+        result = Array.from(Array(9), () => Array(9).fill(0));
         continue;
       }
+
       result[emptyCell.rowIndex][emptyCell.colIndex] = candidatesForCell.shift();
+
     }
     return result;
   }

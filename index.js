@@ -1,6 +1,6 @@
 const { SudokuClient } = require('./sudoku');
 const sudokuClient = new SudokuClient();
-sudokuClient.createGame(39);
+sudokuClient.createGame(53);
 
 console.log('solvedBoard', sudokuClient.solvedBoard);
 console.log('startingBoard', sudokuClient.startingBoard);
