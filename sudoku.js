@@ -1,111 +1,119 @@
-class Sudoku {
+// 스도쿠 알고리즘
+// 1. 정답판
+// 2. 문제판(유일 해)
+// 3. 빈 칸들에 들어가야 하는 값들
 
-  constructor(holes) {
-    try {
-      this._solvedBoard = this.createSolvedBoard();
-      const [removedValues, startingBoard] = this.pokeHoles(this.solvedBoard.map(row => row.slice()), holes);
-      this._startingBoard = startingBoard;
-      this._removeValues = removedValues;
-    } catch (error) {
-      console.error(error);
-      return new Sudoku(holes);
-    }
+class SudokuClient {
+  constructor() { }
+
+  createGame(holes) {
+    this._solvedBoard = this.createSolvedBoard();
+    this._holes = holes;
+    this.createStartingBoard(this.solvedBoard, holes);
   }
 
   get solvedBoard() {
-    return this._solvedBoard;
-  }
-
-  set solvedBoard(board) {
-    this._solvedBoard = board;
+    return this._solvedBoard.map(v => v.slice());
   }
 
   get startingBoard() {
-    return this._startingBoard;
+    return this._startingBoard?.map(v => v.slice())
   }
 
-  set startingBoard(board) {
-    this._startingBoard = board;
-  }
-
-  get removedValues() {
-    return this._removeValues;
-  }
-
-  set removedValues(removeValues) {
-    this._removeValues = removeValues;
+  get answers() {
+    return this._answers.slice();
   }
 
   createSolvedBoard() {
-    const solvedBoard = this.createEmptyBoard();
-    this.fillBoard(solvedBoard);
-    return solvedBoard;
-
+    return this.fillBoard(Array.from(Array(9), () => Array(9).fill(0)));
   }
 
-  createEmptyBoard() {
-    return [
-      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ];
+  createStartingBoard(solvedBoard, holes) {
+    let startingBoard = solvedBoard;
+    this.pokeHoles(startingBoard, holes);
+    this._startingBoard = startingBoard;
   }
 
-  fillBoard(board) {
-    const emptyCell = this.nextEmptyCell(board);
-    if (!emptyCell) {
-      return board;
-    }
-    let counter = 0;
-    for (const num of this.shuffledNumArray()) {
-      counter++;
-      if (counter > 20_000_000) {
-        throw new Error("Recursion Timeout");
+  pokeHoles(board, holes) {
+    this._answers = [];
+    const solutions = [board.map(v => v.slice())];
+    let currentHoles = 0;
+    while (currentHoles < holes) {
+      const randomValue = Math.floor(Math.random() * 81);
+      const randomRowIndex = Math.floor(randomValue / 9);
+      const randomColIndex = randomValue % 9;
+
+      if (!board[randomRowIndex]) continue;
+      if (board[randomRowIndex][randomColIndex] == 0) continue;
+
+      const dummyBoard = board.map(v => v.slice());
+      dummyBoard[randomRowIndex][randomColIndex] = 0;
+      const candidateBoard = this.fillBoard(dummyBoard.map(v => v.slice()));
+      if (!this.includesInSolutions(solutions, candidateBoard)) {
+        solutions.push(solutions);
       }
 
-      if (this.safeToPlace(board, emptyCell, num)) {
-        board[emptyCell.rowIndex][emptyCell.colIndex] = num;
+      if (solutions.length > 1) {
+        return this.createGame(this._holes);
+      }
 
-        if (this.fillBoard(board)) {
-          return board;
-        }
-        board[emptyCell.rowIndex][emptyCell.colIndex] = 0;
+      this._answers.push({
+        rowIndex: randomRowIndex,
+        colIndex: randomColIndex,
+      })
+      board[randomRowIndex][randomColIndex] = 0;
+      currentHoles++;
+    }
+  }
+
+
+  includesInSolutions(solutions, candidateBoard) {
+    const flatCandidateBoard = candidateBoard.flat();
+    for (const solution of solutions) {
+      const flatSolution = solution.flat();
+      const difference = flatCandidateBoard.filter(x => !flatSolution.includes(x));
+      if (difference.length > 0) {
+        return false;
       }
     }
-    return false;
+    return true;
   }
+
+  fillBoard(baseBoard) {
+    let result = baseBoard.map(v => v.slice());
+    while (true) {
+      const emptyCell = this.nextEmptyCell(result);
+      if (emptyCell.rowIndex === null || emptyCell.colIndex === null) {
+        break;
+      }
+      const candidatesForCell = this.shuffledSudokuNumbers().filter((candidateNumber) => this.allPass(result, emptyCell, candidateNumber));
+      if (candidatesForCell.length === 0) {
+        // 다시 만들까? 
+        result = baseBoard.map(v => v.slice());
+        continue;
+      }
+      result[emptyCell.rowIndex][emptyCell.colIndex] = candidatesForCell.shift();
+    }
+    return result;
+  }
+
 
   nextEmptyCell(board) {
-    const emptyCell = { rowIndex: '', colIndex: '' };
+    const result = { rowIndex: null, colIndex: null }
 
-    board.forEach((row, rowIndex) => {
-      if (emptyCell.colIndex !== "") {
-        return;
+    for (let rowIndex = 0; rowIndex < board.length; rowIndex++) {
+      const row = board[rowIndex];
+      const firstZeroCell = row.find((col) => col === 0);
+      if (firstZeroCell !== undefined) {
+        result.rowIndex = rowIndex;
+        result.colIndex = row.indexOf(firstZeroCell);
+        break;
       }
-
-      let firstZero = row.find((col) => col === 0);
-      if (firstZero === undefined) {
-        return;
-      }
-
-      emptyCell.rowIndex = rowIndex;
-      emptyCell.colIndex = row.indexOf(firstZero);
-    });
-
-    if (emptyCell.colIndex !== "") {
-      return emptyCell;
     }
-
-    return false;
+    return result;
   }
 
-  shuffledNumArray() {
+  shuffledSudokuNumbers() {
     let result = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     for (let i = result.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -114,63 +122,33 @@ class Sudoku {
     return result;
   }
 
-  safeToPlace(board, cell, num) {
-    return this.rowSafe(board, cell, num) &&
-      this.colSafe(board, cell, num) &&
-      this.boxSafe(board, cell, num)
+  allPass(board, cell, num) {
+    return this.rowPass(board, cell, num) && this.colPass(board, cell, num) && this.boxPass(board, cell, num);
   }
 
-  rowSafe(board, cell, num) {
-    return board[cell.rowIndex].indexOf(num) == -1
+  rowPass(board, cell, num) {
+    return board[cell.rowIndex].indexOf(num) < 0;
   }
 
-  colSafe(board, cell, num) {
-    return !board.some(row => row[cell.colIndex] == num)
+  colPass(board, cell, num) {
+    return !board.some(row => row[cell.colIndex] === num);
   }
 
-  boxSafe(board, cell, num) {
+  boxPass(board, cell, num) {
     const boxStartRow = cell.rowIndex - (cell.rowIndex % 3);
     const boxStartCol = cell.colIndex - (cell.colIndex % 3);
 
-    let result = true;
-
     for (const boxRow of [0, 1, 2]) {
       for (const boxCol of [0, 1, 2]) {
-        if (board[boxStartRow + boxRow][boxStartCol + boxCol] == num) {
-          result = false;
+        if (board[boxStartRow + boxRow][boxStartCol + boxCol] === num) {
+          return false;
         }
       }
     }
-    return result;
-  }
-
-  pokeHoles(board, holes) {
-    const removedValues = [];
-
-    while (removedValues.length < holes) {
-      const randomValue = Math.floor(Math.random() * 81);
-      const randomRowIndex = Math.floor(randomValue / 9);
-      const randomColIndex = randomValue % 9;
-
-      if (!board[randomRowIndex]) continue;
-      if (board[randomRowIndex][randomColIndex] == 0) continue;
-
-      removedValues.push({
-        rowIndex: randomRowIndex,
-        colIndex: randomColIndex,
-        value: board[randomRowIndex][randomColIndex],
-      });
-      board[randomRowIndex][randomColIndex] = 0;
-      const changedBoard = board.map(row => row.slice());
-
-      if (!this.fillBoard(changedBoard)) {
-        board[randomRowIndex][randomColIndex] = removedValues.pop().value;
-      }
-    }
-    return [removedValues, board];
+    return true;
   }
 }
 
 module.exports = {
-  Sudoku
+  SudokuClient
 }
